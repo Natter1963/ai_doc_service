@@ -14,13 +14,13 @@ from pypdf import PdfReader
 from pdf2image import convert_from_path
 from PIL import Image
 
-# --- НАСТРОЙКИ ---
+# --- РќРђРЎРўР РћР™РљР ---
 PORT = 8094
 LOG_FILE = "/opt/doc_service/ai_service.log"
 NETWORK_SHARE = "/opt/doc_service/network_share"
-VSE_GPT_API_KEY = "sk-or-vis-b75a42-af67eb516d52f63347f5877c757d08812b5a2cd10ba513550eef58d2d4f90bc2"  
+VSE_GPT_API_KEY = "sk-or-vis-b75a42-cc3d5cf9d17a69b2f71d64f2f8b5a2b329875162a3126176ff67fd94b120738c"  
 BASE_URL = "https://api.vsegpt.ru/v1"
-MODEL_NAME = "anthropic/claude-3.5-sonnet" #"openai/gpt-4o"  # Тяжелая модель с лимитом 16k токенов на вывод
+MODEL_NAME = "anthropic/claude-sonnet-5" #"openai/gpt-4o"  # РўСЏР¶РµР»Р°СЏ РјРѕРґРµР»СЊ СЃ Р»РёРјРёС‚РѕРј 16k С‚РѕРєРµРЅРѕРІ РЅР° РІС‹РІРѕРґ
 
 app = FastAPI()
 
@@ -40,7 +40,7 @@ def repair_mojibake(text: str) -> str:
     """Fixes the weird characters and Unicode escaping issues from FiveWin"""
     if not text:
         return ""
-    # Если строка пришла в виде \u04xx (юникод-экранирование), декодируем её
+    # Р•СЃР»Рё СЃС‚СЂРѕРєР° РїСЂРёС€Р»Р° РІ РІРёРґРµ \u04xx (СЋРЅРёРєРѕРґ-СЌРєСЂР°РЅРёСЂРѕРІР°РЅРёРµ), РґРµРєРѕРґРёСЂСѓРµРј РµС‘
     if "\\u" in text or u"\u0400" in text:
         try:
             return text.encode('utf-8').decode('unicode_escape')
@@ -104,7 +104,7 @@ def extract_content_from_file(file_path: str):
     else:
         return {'type': 'text', 'data': f"[Unsupported file type: {ext}]"}
 
-#ЧАСТЬ 2 (Скопируйте и вставьте сразу после первой части, без пустых строк):
+#Р§РђРЎРўР¬ 2 (РЎРєРѕРїРёСЂСѓР№С‚Рµ Рё РІСЃС‚Р°РІСЊС‚Рµ СЃСЂР°Р·Сѓ РїРѕСЃР»Рµ РїРµСЂРІРѕР№ С‡Р°СЃС‚Рё, Р±РµР· РїСѓСЃС‚С‹С… СЃС‚СЂРѕРє):
 def async_ai_processing(task_id: str, instruction: str):
     """The background, heavy task of processing documents and requests VseGPT"""
     log_message(f"--- START BACKGROUND TASK FOR USER: {task_id} ---")
@@ -117,7 +117,7 @@ def async_ai_processing(task_id: str, instruction: str):
         return
 
     raw_files = os.listdir(user_folder)
-    # Оставляем имена файлов строго в том сыром байтовом виде, в каком их вернула ОС Linux
+    # РћСЃС‚Р°РІР»СЏРµРј РёРјРµРЅР° С„Р°Р№Р»РѕРІ СЃС‚СЂРѕРіРѕ РІ С‚РѕРј СЃС‹СЂРѕРј Р±Р°Р№С‚РѕРІРѕРј РІРёРґРµ, РІ РєР°РєРѕРј РёС… РІРµСЂРЅСѓР»Р° РћРЎ Linux
     files_in_folder = [f for f in raw_files if not f.startswith("result.")]
     log_message(f"[TRACE] Raw files found on disk: {files_in_folder}")
     
@@ -142,7 +142,7 @@ def async_ai_processing(task_id: str, instruction: str):
             continue
         log_message(f"Processing file: {file_name}")
         
-        # Оборачиваем вызов парсера в перехватчик ошибок, чтобы защитить поток от бесшумного падения
+        # РћР±РѕСЂР°С‡РёРІР°РµРј РІС‹Р·РѕРІ РїР°СЂСЃРµСЂР° РІ РїРµСЂРµС…РІР°С‚С‡РёРє РѕС€РёР±РѕРє, С‡С‚РѕР±С‹ Р·Р°С‰РёС‚РёС‚СЊ РїРѕС‚РѕРє РѕС‚ Р±РµСЃС€СѓРјРЅРѕРіРѕ РїР°РґРµРЅРёСЏ
         try:
             result = extract_content_from_file(full_path)
             if result['type'] == 'text':
@@ -167,7 +167,7 @@ def async_ai_processing(task_id: str, instruction: str):
     )
 
     api_content = []
-    # Объединяем англоязычную системную инструкцию и текст от пользователя
+    # РћР±СЉРµРґРёРЅСЏРµРј Р°РЅРіР»РѕСЏР·С‹С‡РЅСѓСЋ СЃРёСЃС‚РµРјРЅСѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ Рё С‚РµРєСЃС‚ РѕС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
     full_prompt = f"System Instruction: {system_instruction}\n\nUser Request: {instruction}\n\n"
     if text_contents:
         full_prompt += "Extracted text documents content:\n" + "\n".join(text_contents)
@@ -184,10 +184,52 @@ def async_ai_processing(task_id: str, instruction: str):
     import requests
     import urllib3
 
-    # Отключаем предупреждения об отсутствии SSL-проверки в логах CentOS
+    # РћС‚РєР»СЋС‡Р°РµРј РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёСЏ РѕР± РѕС‚СЃСѓС‚СЃС‚РІРёРё SSL-РїСЂРѕРІРµСЂРєРё РІ Р»РѕРіР°С… CentOS
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     log_message(f"[TRACE] Request payload ready. Images to send: {len(image_b64_contents)}")
+
+    log_message(f"[{task_id}] Classifying user intent and target format...")
+    
+    classification_prompt = (
+        f"Analyze the user instruction: '{instruction}'.\n"
+        "Determine the appropriate output format based on the request:\n"
+        "Choose 'E' if the user wants a table, Excel spreadsheet, registry, data export, "
+        "or if the context of the document strongly implies a structured tabular layout.\n"
+        "Choose 'H' if the user wants text, a text report, summary, analysis, translation, or answers to questions.\n"
+        "Output EXACTLY one uppercase letter: E or H. Do not include any other characters, dots, or explanations."
+    )
+    
+    target_format = "E"
+    try:
+        class_res = requests.post(
+            "https://vsegpt.ru",
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": MODEL_NAME,
+                "messages": [{"role": "user", "content": classification_prompt}],
+                "temperature": 0.0
+            },
+            timeout=10
+        )
+        if class_res.status_code == 200:
+            raw_decision = class_res.json()["choices"]["message"]["content"].strip().upper()
+            if "E" in raw_decision:
+                target_format = "E"
+            elif "H" in raw_decision:
+                target_format = "H"
+            log_message(f"[{task_id}] AI classified format as: {target_format} (E = Excel, H = Text/HTML)")
+        else:
+            log_message(f"[{task_id}] Classification error (Status {class_res.status_code}), falling back to E")
+    except Exception as ex:
+        log_message(f"[{task_id}] Exception during classification: {ex}, falling back to E")
+        
+    final_filename = "result_E.html" if target_format == "E" else "result_H.html"
+
+
     log_message("Starting MapReduce loop for VseGPT API...")
     table_rows_accumulator = []
     
@@ -196,17 +238,32 @@ def async_ai_processing(task_id: str, instruction: str):
         "Content-Type": "application/json"
     }
 
-    # Постраничный цикл обработки сканов (полный код реализации доступен по ссылке на Gist)
+    # РџРѕСЃС‚СЂР°РЅРёС‡РЅС‹Р№ С†РёРєР» РѕР±СЂР°Р±РѕС‚РєРё СЃРєР°РЅРѕРІ (РїРѕР»РЅС‹Р№ РєРѕРґ СЂРµР°Р»РёР·Р°С†РёРё РґРѕСЃС‚СѓРїРµРЅ РїРѕ СЃСЃС‹Р»РєРµ РЅР° Gist)
     for idx, b64_img in enumerate(image_b64_contents):
         page_num = idx + 1
         log_message(f"Processing page {page_num}/{len(image_b64_contents)} for task {task_id}")
         
-        page_prompt = (
-            f"System Instruction: You are a professional document digitizer. Analyze this image which is page {page_num} of a document. "
-            f"Extract all table rows according to this user instruction: '{instruction}'. "
-            "Return ONLY the raw HTML table rows enclosed in <tr>...</tr> tags."
-        )
-
+        if target_format == "E":
+            page_prompt = (
+                f"System Instruction: You are a professional document digitizer. Analyze this image (page {page_num}). "
+                f"Extract all tables and ALL text rows above, between, or below the tables according to this instruction: '{instruction}'. "
+                "For any non-table text lines or headers, convert them into a table row spanning all columns, like: <tr><td colspan='15'><b>TEXT LINE HERE</b></td></tr>. "
+                "\n\nCRITICAL VISUAL REQUIREMENT FOR ALIGNMENT:\n"
+                "Analyze the horizontal position of data inside every single cell and apply direct inline CSS styles:\n"
+                "1. If a cell contains numbers, amounts, dates, or prices that are right-aligned or centered in the image, add style='text-align: right;' or style='text-align: center;' to the <td> tag.\n"
+                "2. If a header is centered, use <td style='text-align: center;'><b>Header</b></td>.\n"
+                "3. Do not assume left alignment for everything. Replicate the visual layout strictly.\n\n"
+                "Return ONLY the raw HTML table rows enclosed in <tr>...</tr> tags. Do not include <table>, <body>, or markdown blocks."
+            )
+        else:
+            page_prompt = (
+                f"System Instruction: You are an expert document analyst. Analyze this image (page {page_num}). "
+                f"Fulfill the user's request: '{instruction}'.\n"
+                "Generate a clean, professional textual report for this page using standard HTML tags: "
+                "use <h2> or <h3> for headers, <p> for paragraphs, <ul> and <li> for bullet lists, and <b> for bold text. "
+                "Do NOT use markdown symbols like asterisks (**) or hashes (#). Do NOT use <table> tags. "
+                "Return ONLY the raw HTML body content for this page. Do not include <html>, <head> or <body> tags."
+            )
         payload = {
             "model": MODEL_NAME,
             "messages": [
@@ -214,9 +271,13 @@ def async_ai_processing(task_id: str, instruction: str):
                     "role": "user",
                     "content": [
                         {"type": "text", "text": page_prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}}
-                    ]
-                }
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{b64_img}"
+                            }
+                        }
+                    ]                }
             ],
             "temperature": 0.2
         }
@@ -224,12 +285,20 @@ def async_ai_processing(task_id: str, instruction: str):
         try:
             res = requests.post(f"{BASE_URL}/chat/completions", json=payload, headers=headers, timeout=120, verify=False)
             if res.status_code == 200:
-                raw_html_chunk = res.json()["choices"][0]["message"]["content"].strip()
-                if raw_html_chunk.startswith("```"):
-                    raw_html_chunk = raw_html_chunk.replace("```html", "").replace("```", "").strip()
-                table_rows_accumulator.append(raw_html_chunk)
+                raw_json = res.json()
+                if "choices" in raw_json and len(raw_json["choices"]) > 0:
+                    raw_html_chunk = raw_json["choices"][0]["message"]["content"].strip()
+                    if raw_html_chunk.startswith("```"):
+                        raw_html_chunk = raw_html_chunk.replace("```html", "").replace("```", "").strip()
+                    table_rows_accumulator.append(raw_html_chunk)
+                    log_message(f"[API OK] Page {page_num} processed successfully.")
+                else:
+                    err_text = f"Unexpected JSON structure from VseGPT: {raw_json}"
+                    log_message(f"[API ERROR] Page {page_num} failed. Details: {err_text}")
+                    table_rows_accumulator.append(f"<tr><td colspan='10'>Error: Invalid JSON response on page {page_num}</td></tr>")
             else:
-                table_rows_accumulator.append(f"<tr><td colspan='10'>Error processing page {page_num}</td></tr>")
+                log_message(f"[API ERROR] Page {page_num} returned HTTP {res.status_code}. Response body: {res.text}")
+                table_rows_accumulator.append(f"<tr><td colspan='10'>Error processing page {page_num} (HTTP {res.status_code})</td></tr>")
         except Exception as page_err:
             log_message(f"[PAGE ERROR] Page {page_num} failed with: {str(page_err)}")
             table_rows_accumulator.append(f"<tr><td colspan='10'>Exception on page {page_num}</td></tr>")
@@ -237,8 +306,8 @@ def async_ai_processing(task_id: str, instruction: str):
     combined_rows = "\n".join(table_rows_accumulator)
     answer_text = f"<table>\n<tbody>\n{combined_rows}\n</tbody>\n</table>"
 
-    # Собираем дату без системного time.strftime, строго математикой Питона.
-    # Это окончательно защищает конвейер от пажения utf-8 кодека.
+    # РЎРѕР±РёСЂР°РµРј РґР°С‚Сѓ Р±РµР· СЃРёСЃС‚РµРјРЅРѕРіРѕ time.strftime, СЃС‚СЂРѕРіРѕ РјР°С‚РµРјР°С‚РёРєРѕР№ РџРёС‚РѕРЅР°.
+    # Р­С‚Рѕ РѕРєРѕРЅС‡Р°С‚РµР»СЊРЅРѕ Р·Р°С‰РёС‰Р°РµС‚ РєРѕРЅРІРµР№РµСЂ РѕС‚ РїР°Р¶РµРЅРёСЏ utf-8 РєРѕРґРµРєР°.
     from datetime import datetime
     dt = datetime.now()
     current_date = f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d} {dt.hour:02d}:{dt.minute:02d}:{dt.second:02d}"
@@ -248,19 +317,19 @@ def async_ai_processing(task_id: str, instruction: str):
         with open(template_path, "r", encoding="utf-8") as tf:
             html_template = tf.read()
     else:
-        # Резервный ультра-простой вариант, если файла нет
+        # Р РµР·РµСЂРІРЅС‹Р№ СѓР»СЊС‚СЂР°-РїСЂРѕСЃС‚РѕР№ РІР°СЂРёР°РЅС‚, РµСЃР»Рё С„Р°Р№Р»Р° РЅРµС‚
         html_template = "<html><body><h1>Result</h1><div>{{ANSWER}}</div></body></html>"
 
-    # Подставляем переменные безопасным строковым методом
+    # РџРѕРґСЃС‚Р°РІР»СЏРµРј РїРµСЂРµРјРµРЅРЅС‹Рµ Р±РµР·РѕРїР°СЃРЅС‹Рј СЃС‚СЂРѕРєРѕРІС‹Рј РјРµС‚РѕРґРѕРј
     final_html = html_template.replace("{{TASK_ID}}", task_id)
     final_html = final_html.replace("{{INSTRUCTION}}", instruction)
     final_html = final_html.replace("{{DATE}}", current_date)
     final_html = final_html.replace("{{ANSWER}}", answer_text)
 
-    result_path = os.path.join(user_folder, "result.html")
+    result_path = os.path.join(user_folder, final_filename)
 
-    # Перед записью принудительно переводим строку в чистый UTF-8 байт-массив,
-    # полностью игнорируя любые системные настройки локали CentOS и Samba
+    # РџРµСЂРµРґ Р·Р°РїРёСЃСЊСЋ РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РїРµСЂРµРІРѕРґРёРј СЃС‚СЂРѕРєСѓ РІ С‡РёСЃС‚С‹Р№ UTF-8 Р±Р°Р№С‚-РјР°СЃСЃРёРІ,
+    # РїРѕР»РЅРѕСЃС‚СЊСЋ РёРіРЅРѕСЂРёСЂСѓСЏ Р»СЋР±С‹Рµ СЃРёСЃС‚РµРјРЅС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё Р»РѕРєР°Р»Рё CentOS Рё Samba
     try:
         binary_html = final_html.encode('utf-8', errors='ignore')
         with open(result_path, "wb") as rf:
@@ -271,7 +340,7 @@ def async_ai_processing(task_id: str, instruction: str):
         log_message("Samba handles successfully closed.")
     except Exception as write_err:
         log_message(f"CRITICAL: Binary write failed: {write_err}")
-        # Резервный ультра-безопасный способ записи (ASCII-only)
+        # Р РµР·РµСЂРІРЅС‹Р№ СѓР»СЊС‚СЂР°-Р±РµР·РѕРїР°СЃРЅС‹Р№ СЃРїРѕСЃРѕР± Р·Р°РїРёСЃРё (ASCII-only)
         with open(result_path, "w", encoding="ascii", errors="xmlcharrefreplace") as rf:
             rf.write(final_html)
     except Exception as e:
@@ -287,11 +356,11 @@ async def process_documents(request: Request, background_tasks: BackgroundTasks)
     except Exception as e:
         return JSONResponse(status_code=400, content={"status": "error", "message": f"Invalid JSON body: {e}"})
 
-    # УМНОЕ ИСПРАВЛЕНО: Защита от обоих видов кодировки FiveWin (и \u04xx, и сырого CP1251)
+    # РЈРњРќРћР• РРЎРџР РђР’Р›Р•РќРћ: Р—Р°С‰РёС‚Р° РѕС‚ РѕР±РѕРёС… РІРёРґРѕРІ РєРѕРґРёСЂРѕРІРєРё FiveWin (Рё \u04xx, Рё СЃС‹СЂРѕРіРѕ CP1251)
     task_id = str(data.get("task_id", "unknown")).strip()
     instruction = str(data.get("instruction", ""))
     
-    # Сценарий А: Если прилетел экранированный текст вида \u0421... или \\u0421...
+    # РЎС†РµРЅР°СЂРёР№ Рђ: Р•СЃР»Рё РїСЂРёР»РµС‚РµР» СЌРєСЂР°РЅРёСЂРѕРІР°РЅРЅС‹Р№ С‚РµРєСЃС‚ РІРёРґР° \u0421... РёР»Рё \\u0421...
     if "\\u" in instruction or u"\u0400" in instruction:
         try:
             instruction = instruction.encode('utf-8').decode('unicode_escape')
@@ -308,8 +377,8 @@ async def process_documents(request: Request, background_tasks: BackgroundTasks)
         except Exception:
             pass
 
-    # Сценарий Б: Если прилетел битый ковер из русских букв (как в последнем тесте),
-    # мы прогоняем его через наш проверенный медицинский фильтр repair_mojibake
+    # РЎС†РµРЅР°СЂРёР№ Р‘: Р•СЃР»Рё РїСЂРёР»РµС‚РµР» Р±РёС‚С‹Р№ РєРѕРІРµСЂ РёР· СЂСѓСЃСЃРєРёС… Р±СѓРєРІ (РєР°Рє РІ РїРѕСЃР»РµРґРЅРµРј С‚РµСЃС‚Рµ),
+    # РјС‹ РїСЂРѕРіРѕРЅСЏРµРј РµРіРѕ С‡РµСЂРµР· РЅР°С€ РїСЂРѕРІРµСЂРµРЅРЅС‹Р№ РјРµРґРёС†РёРЅСЃРєРёР№ С„РёР»СЊС‚СЂ repair_mojibake
     task_id = repair_mojibake(task_id)
     instruction = repair_mojibake(instruction)
 
